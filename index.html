@@ -1,24 +1,19 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <title>حبيبة وتكرتوش - بوت الجدة الجزائرية</title>
-  <style>
-    body { font-family: 'Arial', sans-serif; direction: rtl; background: #f9f9f9; padding: 20px; }
-    .chat-box { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px #ccc; }
-    .message { margin: 10px 0; }
-    .user { text-align: right; }
-    .bot { text-align: left; color: green; }
-    input, button { padding: 10px; font-size: 16px; }
-    button { margin-top: 10px; }
-  </style>
+  <meta charset="UTF-8">
+  <title>حبيبة وتكرتوش</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="chat-box">
-    <h2>👵 بوت "حبيبة وتكرتوش"</h2>
-    <div id="chat"></div>
-    <input type="text" id="userInput" placeholder="قول لحبيبة وتكرتوش حاجة..." />
-    <button onclick="sendMessage()">أرسل</button>
+  <div class="chat-container">
+    <h2>👵 حبيبة وتكرتوش</h2>
+    <div id="chatbox" class="chat-box"></div>
+    <div class="input-group">
+      <input type="text" id="userInput" placeholder="قول لحبيبة وتكرتوش حاجة..." />
+      <button onclick="sendMessage()">أرسل</button>
+      <button onclick="startListening()">🎤 تكلم</button>
+    </div>
   </div>
   <script src="script.js"></script>
 </body>
