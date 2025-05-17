@@ -2,21 +2,79 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>حبيبة وتكرتوش</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>بوت حبيبة وتكرتوش</title>
   <style>
-    body { font-family: 'Arial', sans-serif; background: #fdf6e3; text-align: center; padding: 2rem; }
-    #messages { max-width: 600px; margin: auto; text-align: left; }
-    .msg { margin: 1rem 0; padding: 1rem; border-radius: 12px; }
-    .user { background: #d1f0ff; }
-    .bot { background: #ffe5b4; }
+    body { font-family: Tahoma, sans-serif; padding: 20px; background: #f0f8ff; }
+    #chat { border: 1px solid #aaa; padding: 10px; height: 300px; overflow-y: auto; background: #fff; }
+    .message { margin: 10px 0; }
+    .user { color: blue; }
+    .bot { color: green; }
+    button { margin-top: 10px; padding: 10px; font-size: 16px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <h1>🎤 بوت حبيبة وتكرتوش</h1>
-  <button onclick="startListening()">🎙️ احكي مع حبيبة</button>
-  <div id="messages"></div>
 
-  <script src="script.js"></script>
+  <h1>بوت حبيبة وتكرتوش 🤖</h1>
+  <div id="chat"></div>
+
+  <button id="start-record-btn">بدء التحدث (الميكروفون)</button>
+
+  <script>
+    const chatDiv = document.getElementById("chat");
+    const startRecordBtn = document.getElementById("start-record-btn");
+
+    // إضافة رسالة للواجهة
+    function addMessage(text, sender) {
+      const div = document.createElement("div");
+      div.classList.add("message", sender);
+      div.textContent = text;
+      chatDiv.appendChild(div);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    // إرسال رسالة للنص API
+    async function sendMessage(text) {
+      addMessage("أنت: " + text, "user");
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
+        });
+
+        const data = await res.json();
+        addMessage("حبيبة: " + data.reply, "bot");
+      } catch {
+        addMessage("حدث خطأ في الاتصال", "bot");
+      }
+    }
+
+    // استخدام Web Speech API للتعرف على الكلام من الميكروفون
+    startRecordBtn.addEventListener("click", () => {
+      if (!("webkitSpeechRecognition" in window)) {
+        alert("متصفحك لا يدعم ميزة التعرف على الصوت.");
+        return;
+      }
+
+      const recognition = new webkitSpeechRecognition();
+      recognition.lang = "ar-DZ"; // لهجة الجزائر
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.start();
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        sendMessage(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        addMessage("لم يتم التعرف على الصوت، حاول مجدداً.", "bot");
+      };
+    });
+  </script>
+
 </body>
 </html>
