@@ -1,46 +1,41 @@
-const express = require("express");
-const cors = require("cors");
-const { Configuration, OpenAIApi } = require("openai");
-require("dotenv").config();
+const backendUrl = "https://habiba-bot.onrender.com"; // غيّر هذا حسب رابطك
+const messages = document.getElementById("messages");
 
-const app = express();
-const port = process.env.PORT || 3000;
+function appendMessage(text, type) {
+  const div = document.createElement("div");
+  div.className = "msg " + type;
+  div.innerText = text;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
 
-app.use(cors());
-app.use(express.json());
+function speak(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ar-DZ";
+  speechSynthesis.speak(utterance);
+}
 
-const openai = new OpenAIApi(
-  new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
-);
+function startListening() {
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = "ar-DZ";
+  recognition.start();
 
-app.post("/ask", async (req, res) => {
-  const message = req.body.message;
+  recognition.onresult = async (event) => {
+    const userMessage = event.results[0][0].transcript;
+    appendMessage(userMessage, "user");
 
-  try {
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content:
-            "أنت حبيبة وتكرتوش، امرأة جزائرية عمرها 68 سنة، تتكلم باللهجة الجزائرية، عندها حس الدعابة وتضحك بزاف، ترد بطريقة شبابية وكبار السن، استعمل كلمات جزائرية دارجة.",
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ],
-      temperature: 0.9,
+    const res = await fetch(backendUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: userMessage }),
     });
 
-    res.json({ reply: completion.data.choices[0].message.content });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    const data = await res.json();
+    appendMessage(data.reply, "bot");
+    speak(data.reply);
+  };
 
-app.listen(port, () => {
-  console.log(`Running on port ${port}`);
-});
+  recognition.onerror = () => {
+    appendMessage("ما قدرتش نسمعك، جرب عاود.", "bot");
+  };
+}

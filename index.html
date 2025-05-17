@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>حبيبة وتكرتوش</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body { font-family: 'Arial', sans-serif; background: #fdf6e3; text-align: center; padding: 2rem; }
+    #messages { max-width: 600px; margin: auto; text-align: left; }
+    .msg { margin: 1rem 0; padding: 1rem; border-radius: 12px; }
+    .user { background: #d1f0ff; }
+    .bot { background: #ffe5b4; }
+  </style>
 </head>
 <body>
-  <div class="chat-container">
-    <h2>👵 حبيبة وتكرتوش</h2>
-    <div id="chatbox" class="chat-box"></div>
-    <div class="input-group">
-      <input type="text" id="userInput" placeholder="قول لحبيبة وتكرتوش حاجة..." />
-      <button onclick="sendMessage()">أرسل</button>
-      <button onclick="startListening()">🎤 تكلم</button>
-    </div>
-  </div>
+  <h1>🎤 بوت حبيبة وتكرتوش</h1>
+  <button onclick="startListening()">🎙️ احكي مع حبيبة</button>
+  <div id="messages"></div>
+
   <script src="script.js"></script>
 </body>
 </html>
