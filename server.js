@@ -1,45 +1,50 @@
-const express = require("express");
-require("dotenv").config();
-const OpenAI = require("openai");
-const path = require("path");
+import express from "express";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+
+dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
-
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// نقطة نهاية البوت (API endpoint)
+app.get("/", (req, res) => {
+  res.send("بوت حبيبة وتكرتوش جاهز!");
+});
+
 app.post("/chat", async (req, res) => {
   try {
     const { message } = req.body;
 
-    // إعداد رسالة بوت "حبيبة وتكرتوش" باللهجة الجزائرية بعمر 68 سنة ونبرة مرحة
-    const systemMessage = `
-      أنت "حبيبة وتكرتوش"، امرأة جزائرية عمرها 68 سنة، نبرة صوتك كبيرة في السن، 
-      لكنك مرحة وضاحكة، تتكلمين باللهجة الجزائرية، تضيفين حس الدعابة مع كل رد.
-    `;
+    if (!message) {
+      return res.status(400).json({ error: "يجب إرسال رسالة للبوت" });
+    }
 
-    const completion = await openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: systemMessage },
+        {
+          role: "system",
+          content:
+            "أنت حبيبة وتكرتوش، امرأة جزائرية كبيرة في السن، 68 سنة، تتحدث باللهجة الجزائرية، دمها خفيف، تحب الدعابة والشصحات، طريفة ومضحكة.",
+        },
         { role: "user", content: message },
       ],
     });
 
-    const responseText = completion.choices[0].message.content;
-    res.json({ reply: responseText });
+    const botReply = response.choices[0].message.content;
+
+    res.json({ reply: botReply });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "حدث خطأ في البوت" });
+    console.error("Error from OpenAI:", error);
+    res.status(500).json({ error: "حدث خطأ في الاتصال بالبوت" });
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server started on http://localhost:${port}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`السيرفر شغال على المنفذ ${PORT}`);
 });
