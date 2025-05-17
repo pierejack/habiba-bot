@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>حبيبة وتكرتوش - البوت الجزائري</title>
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f7f7f7;
+      text-align: center;
+      padding: 50px;
+    }
+    button {
+      font-size: 24px;
+      padding: 20px;
+      background-color: #ff90b3;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      color: white;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    button:hover {
+      background-color: #ff5c8a;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎤 دردش مع حبيبة وتكرتوش</h1>
+  <button onclick="startConversation()">اضغط وتكلم</button>
+
+  <script>
+    const apiKey = "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";
+
+    async function startConversation() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'ar-DZ';
+      recognition.start();
+      recognition.onresult = async function(event) {
+        const userText = event.results[0][0].transcript;
+        const systemPrompt = `أنت بوت صوتي جزائري تُدعى حبيبة وتكرتوش، امرأة جزائرية عمرها 68 سنة. تتكلمين باللهجة الجزائرية الشعبية وبأسلوب فكاهي كما تفعل الجدات، وتردين على المستخدمين بنبرة طريفة وحنونة وبمصطلحات جزائرية. الجمل يجب أن تكون قصيرة ومرحة.`;
+
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userText }
+            ]
+          })
+        });
+
+        const data = await response.json();
+        const reply = data.choices[0].message.content;
+        console.log("رد حبيبة:", reply);
+        speak(reply);
+      };
+    }
+
+    function speak(text) {
+      const synth = window.speechSynthesis;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ar-DZ';
+      utter.pitch = 0.7;
+      utter.rate = 0.85;
+      synth.speak(utter);
+    }
+  </script>
+</body>
+</html>
