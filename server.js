@@ -1,40 +1,33 @@
+
 import express from "express";
 import bodyParser from "body-parser";
-import { Configuration, OpenAIApi } from "openai";
-import dotenv from "dotenv";
+import cors from "cors";
+import { config } from "dotenv";
+import { OpenAI } from "openai";
 
-dotenv.config();
+config();
 
 const app = express();
+app.use(cors());
 app.use(bodyParser.json());
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.post("/chat", async (req, res) => {
-  const userMessage = req.body.message;
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: "Message is required" });
 
   try {
-    const response = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: userMessage }],
+      messages: [{ role: "system", content: "أنت حبيبة وتكرتوش، مرأة جزائرية كبيرة في السن، عمرها 68 سنة. تتحدث باللهجة الجزائرية بروح الدعابة." }, { role: "user", content: message }],
     });
-
-    const botReply = response.data.choices[0].message.content;
-    res.json({ reply: botReply });
-  } catch (error) {
-    console.error("خطأ في الاتصال بـ OpenAI:", error.message);
-    res.status(500).json({ error: "حدث خطأ في الاتصال بـ OpenAI" });
+    res.json({ reply: completion.choices[0].message.content });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "حدث خطأ في الاتصال بالخدمة" });
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("بوت حبيبة شغال ✅");
-});
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`الخادم يعمل على المنفذ ${PORT}`);
-});
+app.listen(PORT, () => console.log("Bot running on port", PORT));
