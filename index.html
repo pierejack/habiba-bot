@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>حبيبة وتكرتوش</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+    button {
+      font-size: 20px;
+      padding: 10px 20px;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>أنا حبيبة وتكرتوش 👵</h1>
+  <p>قوللي واش تحب تسقسي و أنا نجاوبك بصح 😄</p>
+  <button onclick="startListening()">🎤 تكلّم معايا</button>
+  <p id="transcript"></p>
+  <script>
+    function startListening() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'ar-DZ';
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('transcript').innerText = 'نتا قلت: ' + transcript;
+        fetch('https://habiba-bot.onrender.com', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text: transcript })
+        })
+        .then(response => response.blob())
+        .then(blob => {
+          const audio = new Audio(URL.createObjectURL(blob));
+          audio.play();
+        })
+        .catch(error => console.error(error));
+      };
+    }
+  </script>
+</body>
+</html>
