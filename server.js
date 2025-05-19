@@ -11,7 +11,7 @@ app.post('/speak', async (req, res) => {
   const { text } = req.body;
   try {
     const response = await axios.post(
-      'https://api.elevenlabs.io/v1/text-to-speech/habiba',
+      'https://api.elevenlabs.io/v1/text-to-speech/OfGMGmhShO8iL9jCkXy8',
       {
         text,
         voice_settings: {
