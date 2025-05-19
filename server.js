@@ -12,7 +12,7 @@ const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: 15,
   message: 'Too many requests, please try again later'
 });
 
@@ -21,22 +21,26 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(limiter);
 
-// Routes
+// Health check endpoint
 app.get('/', (req, res) => {
-  res.status(200).send("Habiba bot is working!");
+  res.status(200).json({ status: 'running', message: 'Habiba bot is ready' });
 });
 
+// TTS endpoint
 app.post('/tts', async (req, res) => {
   try {
+    // Validate API key
     if (!elevenLabsApiKey) {
-      throw new Error('API key not configured');
+      return res.status(500).json({ error: 'API key not configured' });
     }
 
+    // Validate input
     const { text } = req.body;
-    if (!text || typeof text !== 'string') {
-      return res.status(400).json({ error: 'Text is required' });
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      return res.status(400).json({ error: 'Text is required and must be a valid string' });
     }
 
+    // Call ElevenLabs API
     const response = await axios({
       method: 'POST',
       url: 'https://api.elevenlabs.io/v1/text-to-speech/OfGMGmhShO8iL9jCkXy8',
@@ -47,18 +51,19 @@ app.post('/tts', async (req, res) => {
       },
       data: {
         text: text,
-        voice_settings: { 
-          stability: 0.5, 
-          similarity_boost: 0.75 
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75
         }
       },
       responseType: 'arraybuffer',
-      timeout: 10000
+      timeout: 15000
     });
 
+    // Send audio response
     res.set({
       'Content-Type': 'audio/mpeg',
-      'Content-Disposition': 'inline; filename="response.mp3"'
+      'Content-Disposition': 'inline; filename="habiba-response.mp3"'
     });
     res.status(200).send(response.data);
 
@@ -67,13 +72,19 @@ app.post('/tts', async (req, res) => {
       status: error.response?.status,
       data: error.response?.data
     });
-    
+
     const statusCode = error.response?.status || 500;
-    const errorMessage = error.response?.data?.message || error.message;
-    
-    res.status(statusCode).json({ 
+    let errorMessage = 'Error processing your request';
+
+    if (statusCode === 401) {
+      errorMessage = 'Invalid API key - check your ElevenLabs configuration';
+    } else if (statusCode === 429) {
+      errorMessage = 'Too many requests - please wait and try again';
+    }
+
+    res.status(statusCode).json({
       error: errorMessage,
-      details: statusCode === 401 ? 'Check your API key' : undefined
+      details: error.response?.data?.message || error.message
     });
   }
 });
@@ -81,4 +92,5 @@ app.post('/tts', async (req, res) => {
 // Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  console.log(`ElevenLabs API Key: ${elevenLabsApiKey ? '***configured***' : 'NOT configured!'}`);
 });
