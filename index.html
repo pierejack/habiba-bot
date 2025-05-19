@@ -92,7 +92,7 @@
       const transcriptDiv = document.getElementById('transcript');
       
       // Use environment variable or fallback URL
-      const backendUrl = window.env?.BACKEND_URL || 'https://habiba-bot.onrender.com/tts';
+      const backendUrl = window.env?.BACKEND_URL || 'https://habiba-bot.onrender.com/';
       
       // Check browser support
       if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
