@@ -6,18 +6,14 @@
   <title>حبيبة وتكرتوش</title>
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f8f9fa;
-      margin: 0;
-      padding: 20px;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
       text-align: center;
+      padding: 20px;
     }
-    
     h1 {
       color: #6a1b9a;
-      margin-bottom: 30px;
     }
-    
     #speakBtn {
       background-color: #9c27b0;
       color: white;
@@ -30,25 +26,12 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       transition: all 0.3s;
     }
-    
-    #speakBtn:hover {
-      background-color: #7b1fa2;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-    }
-    
-    #speakBtn:disabled {
-      background-color: #b39ddb;
-      cursor: not-allowed;
-    }
-    
     #status {
       font-size: 18px;
       color: #333;
       margin: 20px 0;
       min-height: 27px;
     }
-    
     .loading {
       display: inline-block;
       width: 20px;
@@ -60,22 +43,8 @@
       margin-right: 10px;
       vertical-align: middle;
     }
-    
     @keyframes spin {
       to { transform: rotate(360deg); }
-    }
-    
-    #transcript {
-      margin: 20px auto;
-      padding: 15px;
-      background-color: #e1bee7;
-      border-radius: 8px;
-      max-width: 80%;
-    }
-    
-    .error {
-      color: #d32f2f;
-      font-weight: bold;
     }
   </style>
 </head>
@@ -83,65 +52,33 @@
   <h1>تحدث مع حبيبة وتكرتوش 🧕</h1>
   <button id="speakBtn">إضغط وتكلم معايا</button>
   <p id="status">إضغط على الزر وابدأ الحديث...</p>
-  <div id="transcript"></div>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const speakBtn = document.getElementById('speakBtn');
       const statusText = document.getElementById('status');
-      const transcriptDiv = document.getElementById('transcript');
-      
-      // Use environment variable or fallback URL
-      const backendUrl = window.env?.BACKEND_URL || 'https://habiba-bot.onrender.com/';
-      
+      const backendUrl = 'https://habiba-bot.onrender.com/tts';
+
       // Check browser support
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        statusText.textContent = 'المتصفح الخاص بك لا يدعم التعرف على الصوت. يرجى استخدام Chrome أو Edge.';
+      if (!('webkitSpeechRecognition' in window)) {
+        statusText.textContent = 'المتصفح لا يدعم التعرف على الصوت';
         speakBtn.disabled = true;
         return;
       }
-      
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
+
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
       recognition.lang = 'ar-DZ';
       recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-      
-      let isListening = false;
-      let audioPlayer = null;
-      
-      speakBtn.addEventListener('click', async () => {
-        try {
-          if (isListening) {
-            recognition.stop();
-            return;
-          }
-          
-          // Check microphone permissions
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          stream.getTracks().forEach(track => track.stop());
-          
-          statusText.innerHTML = '<span class="loading"></span> أستمع إليك...';
-          transcriptDiv.textContent = '';
-          speakBtn.textContent = 'إيقاف';
-          isListening = true;
-          recognition.start();
-        } catch (error) {
-          console.error('Microphone error:', error);
-          statusText.textContent = 'يجب السماح باستخدام الميكروفون';
-          speakBtn.disabled = true;
-          
-          if (error.name === 'NotAllowedError') {
-            statusText.textContent = 'تم رفض إذن الميكروفون. يرجى السماح بالوصول في إعدادات المتصفح';
-          }
-        }
+
+      speakBtn.addEventListener('click', () => {
+        statusText.innerHTML = '<span class="loading"></span> أستمع إليك...';
+        recognition.start();
       });
-      
+
       recognition.onresult = async (event) => {
-        const transcript = event.results[0][0].transcript;
-        transcriptDiv.textContent = `قال: "${transcript}"`;
+        const text = event.results[0][0].transcript;
         statusText.innerHTML = '<span class="loading"></span> جاري تحضير الرد...';
-        
+
         try {
           const response = await fetch(backendUrl, {
             method: 'POST',
@@ -149,75 +86,13 @@
               'Content-Type': 'application/json',
               'Accept': 'audio/mpeg'
             },
-            body: JSON.stringify({ text: transcript })
+            body: JSON.stringify({ text })
           });
-          
+
           if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || 'فشل في الحصول على الرد من الخادم');
+            throw new Error(await response.text());
           }
-          
-          // Stop any currently playing audio
-          if (audioPlayer) {
-            audioPlayer.pause();
-          }
-          
-          const audioBlob = await response.blob();
-          const audioUrl = URL.createObjectURL(audioBlob);
-          audioPlayer = new Audio(audioUrl);
-          
-          audioPlayer.onerror = () => {
-            statusText.textContent = 'حدث خطأ في تشغيل الصوت';
-          };
-          
-          audioPlayer.onended = () => {
-            statusText.textContent = 'جاهز للمحادثة التالية';
-            speakBtn.textContent = 'إضغط وتكلم معايا';
-          };
-          
-          audioPlayer.play();
-          statusText.innerHTML = '<span class="loading"></span> جاري تشغيل الرد...';
-          
-        } catch (error) {
-          console.error('API Error:', error);
-          statusText.innerHTML = `<span class="error">خطأ: ${error.message}</span>`;
-          
-          if (error.message.includes('401')) {
-            transcriptDiv.innerHTML += '<p class="error">خطأ في المصادقة. يرجى التحقق من إعدادات الخادم.</p>';
-          }
-        } finally {
-          isListening = false;
-          speakBtn.textContent = 'إضغط وتكلم معايا';
-        }
-      };
-      
-      recognition.onerror = (event) => {
-        console.error('Recognition error:', event.error);
-        isListening = false;
-        speakBtn.textContent = 'إضغط وتكلم معايا';
-        
-        let errorMessage = 'حدث خطأ في التعرف على الصوت';
-        switch(event.error) {
-          case 'no-speech':
-            errorMessage = 'لم يتم الكشف عن أي كلام';
-            break;
-          case 'audio-capture':
-            errorMessage = 'لا يمكن الوصول إلى الميكروفون';
-            break;
-          case 'not-allowed':
-            errorMessage = 'تم رفض إذن استخدام الميكروفون';
-            break;
-        }
-        
-        statusText.innerHTML = `<span class="error">${errorMessage}</span>`;
-      };
-      
-      recognition.onend = () => {
-        if (isListening) {
-          statusText.textContent = 'جاري معالجة طلبك...';
-        }
-      };
-    });
-  </script>
-</body>
-</html>
+
+          const blob = await response.blob();
+          const audio = new Audio(URL.createObjectURL(blob));
+          audio.play
