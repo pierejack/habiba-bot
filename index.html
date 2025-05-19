@@ -72,6 +72,11 @@
       border-radius: 8px;
       max-width: 80%;
     }
+    
+    .error {
+      color: #d32f2f;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -90,20 +95,20 @@
       const backendUrl = window.env?.BACKEND_URL || 'https://habiba-bot.onrender.com/tts';
       
       // Check browser support
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      
-      if (!SpeechRecognition) {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         statusText.textContent = 'المتصفح الخاص بك لا يدعم التعرف على الصوت. يرجى استخدام Chrome أو Edge.';
         speakBtn.disabled = true;
         return;
       }
       
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognition.lang = 'ar-DZ';
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
       
       let isListening = false;
+      let audioPlayer = null;
       
       speakBtn.addEventListener('click', async () => {
         try {
@@ -127,7 +132,7 @@
           speakBtn.disabled = true;
           
           if (error.name === 'NotAllowedError') {
-            statusText.textContent = 'تم رفض إذن الميكروفون. يرجى السماح بالوصول';
+            statusText.textContent = 'تم رفض إذن الميكروفون. يرجى السماح بالوصول في إعدادات المتصفح';
           }
         }
       });
@@ -152,25 +157,34 @@
             throw new Error(errorData.error || 'فشل في الحصول على الرد من الخادم');
           }
           
+          // Stop any currently playing audio
+          if (audioPlayer) {
+            audioPlayer.pause();
+          }
+          
           const audioBlob = await response.blob();
           const audioUrl = URL.createObjectURL(audioBlob);
-          const audio = new Audio(audioUrl);
+          audioPlayer = new Audio(audioUrl);
           
-          audio.onerror = () => {
+          audioPlayer.onerror = () => {
             statusText.textContent = 'حدث خطأ في تشغيل الصوت';
           };
           
-          audio.onended = () => {
+          audioPlayer.onended = () => {
             statusText.textContent = 'جاهز للمحادثة التالية';
             speakBtn.textContent = 'إضغط وتكلم معايا';
           };
           
-          audio.play();
+          audioPlayer.play();
           statusText.innerHTML = '<span class="loading"></span> جاري تشغيل الرد...';
           
         } catch (error) {
           console.error('API Error:', error);
-          statusText.textContent = `خطأ: ${error.message}`;
+          statusText.innerHTML = `<span class="error">خطأ: ${error.message}</span>`;
+          
+          if (error.message.includes('401')) {
+            transcriptDiv.innerHTML += '<p class="error">خطأ في المصادقة. يرجى التحقق من إعدادات الخادم.</p>';
+          }
         } finally {
           isListening = false;
           speakBtn.textContent = 'إضغط وتكلم معايا';
@@ -195,13 +209,12 @@
             break;
         }
         
-        statusText.textContent = errorMessage;
+        statusText.innerHTML = `<span class="error">${errorMessage}</span>`;
       };
       
       recognition.onend = () => {
-        isListening = false;
-        if (speakBtn.textContent !== 'إضغط وتكلم معايا') {
-          speakBtn.textContent = 'إضغط وتكلم معايا';
+        if (isListening) {
+          statusText.textContent = 'جاري معالجة طلبك...';
         }
       };
     });
