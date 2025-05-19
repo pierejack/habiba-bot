@@ -1,54 +1,105 @@
-
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>حبيبة وتكرتوش</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      color: #4a148c;
+    }
+    #speakBtn {
+      background-color: #9c27b0;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      border-radius: 50px;
+      cursor: pointer;
+      margin: 20px 0;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: all 0.3s;
+    }
+    #speakBtn:hover {
+      background-color: #7b1fa2;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    #status {
+      font-size: 18px;
+      color: #333;
+      margin: 20px 0;
+      min-height: 27px;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(156, 39, 176, 0.3);
+      border-radius: 50%;
+      border-top-color: #9c27b0;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
   <h1>تحدث مع حبيبة وتكرتوش 🧕</h1>
-  <button id="speakBtn">أهدر معايا</button>
-  <p id="status">أضغط على الزر وتكلم...</p>
+  <button id="speakBtn">إضغط وتكلم معايا</button>
+  <p id="status">إضغط على الزر وابدأ الحديث...</p>
 
   <script>
-    const backendUrl = 'https://habiba-bot.onrender.com/';
-
+    const backendUrl = 'https://habiba-bot.onrender.com/tts';
     const speakBtn = document.getElementById('speakBtn');
     const statusText = document.getElementById('status');
+
+    // Check if browser supports speech recognition
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      statusText.textContent = 'المتصفح الخاص بك لا يدعم التعرف على الصوت. يرجى استخدام Chrome أو Edge.';
+      speakBtn.disabled = true;
+    }
 
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'ar-DZ';
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-    speakBtn.onclick = () => {
-      statusText.textContent = 'أهدر توا...';
+    speakBtn.addEventListener('click', () => {
+      statusText.innerHTML = '<span class="loading"></span> أستمع إليك...';
       recognition.start();
-    };
+    });
 
     recognition.onresult = async (event) => {
       const text = event.results[0][0].transcript;
-      statusText.textContent = 'نخمم نجاوبك...';
+      statusText.innerHTML = '<span class="loading"></span> أفكر في الرد...';
 
-      const response = await fetch(backendUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text })
-      });
+      try {
+        const response = await fetch(backendUrl, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'audio/mpeg'
+          },
+          body: JSON.stringify({ text })
+        });
 
-      if (response.ok) {
-        const blob = await response.blob();
-        const audioUrl = URL.createObjectURL(blob);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'فشل في الحصول على الرد');
+        }
+
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
-        audio.play();
-        statusText.textContent = 'جاوبتك، قول حاجة أخرى';
-      } else {
-        statusText.textContent = 'صرا مشكل، عاود جرب';
-      }
-    };
-
-    recognition.onerror = () => {
-      statusText.textContent = 'ما سمعتكش مليح، عاود';
-    };
-  </script>
-</body>
-</html>
+        
+       
