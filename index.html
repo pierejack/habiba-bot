@@ -1,50 +1,54 @@
+
 <!DOCTYPE html>
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
   <title>حبيبة وتكرتوش</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 50px;
-    }
-    button {
-      font-size: 20px;
-      padding: 10px 20px;
-      margin: 10px;
-    }
-  </style>
 </head>
 <body>
-  <h1>أنا حبيبة وتكرتوش 👵</h1>
-  <p>قوللي واش تحب تسقسي و أنا نجاوبك بصح 😄</p>
-  <button onclick="startListening()">🎤 تكلّم معايا</button>
-  <p id="transcript"></p>
-  <script>
-    function startListening() {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.lang = 'ar-DZ';
-      recognition.start();
+  <h1>تحدث مع حبيبة وتكرتوش 🧕</h1>
+  <button id="speakBtn">أهدر معايا</button>
+  <p id="status">أضغط على الزر وتكلم...</p>
 
-      recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById('transcript').innerText = 'نتا قلت: ' + transcript;
-        fetch('https://habiba-bot.onrender.com', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ text: transcript })
-        })
-        .then(response => response.blob())
-        .then(blob => {
-          const audio = new Audio(URL.createObjectURL(blob));
-          audio.play();
-        })
-        .catch(error => console.error(error));
-      };
-    }
+  <script>
+    const backendUrl = 'https://habiba-bot.onrender.com/';
+
+    const speakBtn = document.getElementById('speakBtn');
+    const statusText = document.getElementById('status');
+
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'ar-DZ';
+    recognition.interimResults = false;
+
+    speakBtn.onclick = () => {
+      statusText.textContent = 'أهدر توا...';
+      recognition.start();
+    };
+
+    recognition.onresult = async (event) => {
+      const text = event.results[0][0].transcript;
+      statusText.textContent = 'نخمم نجاوبك...';
+
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text })
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        audio.play();
+        statusText.textContent = 'جاوبتك، قول حاجة أخرى';
+      } else {
+        statusText.textContent = 'صرا مشكل، عاود جرب';
+      }
+    };
+
+    recognition.onerror = () => {
+      statusText.textContent = 'ما سمعتكش مليح، عاود';
+    };
   </script>
 </body>
 </html>
